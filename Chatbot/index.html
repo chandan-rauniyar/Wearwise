@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Homepage with Chatbot</title>
+</head>
+<body  >
+    .jpg
+
+    <!-- Chatbot Icon -->
+    <div id="chat-icon" class="fixed bottom-5 right-5 bg-gray-600 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg cursor-pointer text-2xl" onclick="toggleChat()">
+        💬
+    </div>
+
+    <!-- Chatbot Popup -->
+    <div id="chat-popup" class="fixed bottom-20 right-5 w-80 bg-white shadow-lg rounded-xl overflow-hidden hidden flex-col">
+        <!-- Chatbot Header -->
+        <div class="bg-gray-600 text-white px-4 py-3 flex justify-between items-center">
+            <span class="text-lg font-semibold">Chatbot</span>
+            <button class="text-white text-2xl font-bold" onclick="toggleChat()">&times;</button>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div id="chat-box" class="p-4 h-64 overflow-y-auto space-y-2 flex flex-col h-[50vh]">
+            <div class="self-start bg-gray-200 text-black px-4 py-2 rounded-lg max-w-xs">Hello! How can I assist you?</div>
+        </div>
+        
+        <!-- Input & Send Button -->
+        <div class="p-4 border-t flex items-center bg-gray-50">
+            <input id="user-input" type="text" placeholder="Type a message..." autocomplete="off" class="flex-grow p-2 rounded-lg border border-gray-300" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" class="ml-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleChat() {
+            let chatPopup = document.getElementById("chat-popup");
+            chatPopup.classList.toggle("hidden");
+        }
+
+        async function sendMessage() {
+            let userInputField = document.getElementById("user-input");
+            let userInput = userInputField.value.trim();
+            if (!userInput) return;
+
+            displayMessage(userInput, "user");
+            userInputField.value = ""; // Clear input field immediately
+
+            let response = await fetch("chatbot.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "message=" + encodeURIComponent(userInput)
+            });
+
+            let result = await response.json();
+            let aiResponse = result.response;
+
+            displayMessage(aiResponse, "bot");
+        }
+
+        function displayMessage(text, sender) {
+            let chatBox = document.getElementById("chat-box");
+            let messageDiv = document.createElement("div");
+            
+            messageDiv.classList.add("p-3", "rounded-lg", "max-w-xs", "shadow");
+            
+            if (sender === "user") {
+                messageDiv.classList.add("bg-gray-500", "text-white", "self-end");
+                messageDiv.innerHTML = text;
+            } else {
+                messageDiv.classList.add("bg-gray-200", "text-gray-900", "self-start");
+                messageDiv.innerHTML = formatAIResponse(text);
+            }
+            
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function formatAIResponse(response) {
+            return response
+                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                .replace(/(\d+\.)\s/g, "<br>$1 ")
+                .replace(/- /g, "<br>• ")
+                .replace(/\[h2\](.*?)\[\/h2\]/g, "<h2 class='text-lg font-bold mt-2'>$1</h2>")
+                .replace(/\[table\](.*?)\[\/table\]/gs, match => createTable(match));
+        }
+
+        function createTable(match) {
+            let rows = match.replace(/\[table\]|\[\/table\]/g, "").split("\n").filter(row => row.trim());
+            let tableHTML = "<table class='border-collapse border border-gray-400 w-full mt-2'>";
+            rows.forEach(row => {
+                let cols = row.split("|").map(col => `<td class='border border-gray-300 p-2'>${col.trim()}</td>`);
+                tableHTML += `<tr>${cols.join("")}</tr>`;
+            });
+            return tableHTML + "</table>";
+        }
+    </script>
+</body>
+</html>
